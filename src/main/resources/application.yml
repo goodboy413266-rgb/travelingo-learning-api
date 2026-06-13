@@ -1,0 +1,95 @@
+# ============================================================
+# Travelingo Learning Content API
+# 학습 콘텐츠 매니저(Chapter/LearningContent/CultureTip) 백엔드
+# ============================================================
+#
+# 프로파일 사용법:
+#   - 기본(local): H2 in-memory, 매번 깨끗하게 시작
+#   - campus:     캠퍼스 MySQL (배포/팀 DB 연동 시)
+#
+# 로컬 실행:  ./gradlew bootRun
+# 캠퍼스 실행: ./gradlew bootRun --args='--spring.profiles.active=campus'
+# H2 콘솔:    http://localhost:8080/h2-console
+# ============================================================
+
+spring:
+  application:
+    name: travelingo-learning-api
+
+  # 기본 프로파일은 local (H2). 운영/팀DB 붙일 땐 campus로 override.
+  profiles:
+    active: local
+
+  jpa:
+    # 운영 안전 디폴트. 프로파일에서 override.
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+    # OSIV(Open Session In View) 끔.
+    # 켜져 있으면 트랜잭션 밖에서 LAZY 로딩이 일어나 N+1 추적이 어려워짐.
+    open-in-view: false
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+
+server:
+  port: 8080
+
+---
+# ============================================================
+# local 프로파일 — H2 in-memory
+# 매 시작마다 테이블이 비워지므로 학습/테스트에 편함.
+# ============================================================
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  datasource:
+    url: jdbc:h2:mem:travelingo;MODE=MySQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    hibernate:
+      # Entity 기반으로 매번 테이블 생성 후 종료 시 drop.
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+---
+# ============================================================
+# campus 프로파일 — 캠퍼스 MySQL
+# 비밀번호는 환경변수로 주입 (커밋에 노출 금지)
+#   $env:DB_USERNAME = "..."
+#   $env:DB_PASSWORD = "..."
+# ============================================================
+spring:
+  config:
+    activate:
+      on-profile: campus
+
+  datasource:
+    url: jdbc:mysql://project-db-campus.smhrd.com:3307/campus_24KDT_LI8_p2_3?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      # 운영 DB는 자동 변경 금지. 스키마 변경은 schema.sql/마이그레이션으로.
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
