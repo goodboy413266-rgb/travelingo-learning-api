@@ -30,10 +30,8 @@ public class ChapterController {
     // ========== 챕터 상세 ==========
     @GetMapping("/{chapterId}")
     public ResponseEntity<?> getChapter(@PathVariable Long chapterId) {
-        Chapter chapter = chapterRepository.findById(chapterId).orElse(null);
-        if (chapter == null) {
-            return ResponseEntity.status(404).body(Map.of("error", "챕터를 찾을 수 없습니다"));
-        }
+        Chapter chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new NoSuchElementException("챕터를 찾을 수 없습니다. id=" + chapterId));
         return ResponseEntity.ok(chapter);
     }
 }
