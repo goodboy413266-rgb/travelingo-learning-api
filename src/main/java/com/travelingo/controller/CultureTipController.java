@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 /**
  * 문화 팁 컨트롤러
@@ -26,12 +27,9 @@ public class CultureTipController {
             @RequestParam Integer sessionNo) {
 
         CultureTip tip = cultureTipRepository
-            .findByChapterIdAndSessionNo(chapterId, sessionNo)
-            .orElse(null);
-
-        if (tip == null) {
-            return ResponseEntity.status(404).body(Map.of("error", "문화 팁이 없습니다"));
-        }
+                .findByChapterIdAndSessionNo(chapterId, sessionNo)
+                .orElseThrow(() -> new NoSuchElementException(
+                        "문화 팁이 없습니다. chapterId=" + chapterId + ", sessionNo=" + sessionNo));
 
         return ResponseEntity.ok(Map.of(
             "tipKo", tip.getTipKo(),
