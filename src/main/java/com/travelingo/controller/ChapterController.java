@@ -1,5 +1,6 @@
 package com.travelingo.controller;
 
+import com.travelingo.dto.ChapterDto;
 import com.travelingo.entity.Chapter;
 import com.travelingo.repository.ChapterRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +24,10 @@ public class ChapterController {
     // ========== 언어별 챕터 목록 ==========
     @GetMapping
     public ResponseEntity<?> getChapters(@RequestParam(defaultValue = "english") String language) {
-        List<Chapter> chapters = chapterRepository.findByLanguageOrderByChapterNo(language);
+        List<ChapterDto> chapters = chapterRepository.findByLanguageOrderByChapterNo(language)
+                .stream()
+                .map(ChapterDto::from)
+                .toList();
         return ResponseEntity.ok(chapters);
     }
 
@@ -32,6 +36,6 @@ public class ChapterController {
     public ResponseEntity<?> getChapter(@PathVariable Long chapterId) {
         Chapter chapter = chapterRepository.findById(chapterId)
                 .orElseThrow(() -> new NoSuchElementException("챕터를 찾을 수 없습니다. id=" + chapterId));
-        return ResponseEntity.ok(chapter);
+        return ResponseEntity.ok(ChapterDto.from(chapter));
     }
 }
