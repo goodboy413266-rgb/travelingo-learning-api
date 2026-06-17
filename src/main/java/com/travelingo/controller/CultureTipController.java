@@ -6,7 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
+import com.travelingo.dto.CultureTipDto;
+
 import java.util.NoSuchElementException;
 
 /**
@@ -31,9 +32,6 @@ public class CultureTipController {
                 .orElseThrow(() -> new NoSuchElementException(
                         "문화 팁이 없습니다. chapterId=" + chapterId + ", sessionNo=" + sessionNo));
 
-        return ResponseEntity.ok(Map.of(
-            "tipKo", tip.getTipKo(),
-            "tipEn", tip.getTipEn() != null ? tip.getTipEn() : ""
-        ));
+        return ResponseEntity.ok(CultureTipDto.from(tip));
     }
 }
