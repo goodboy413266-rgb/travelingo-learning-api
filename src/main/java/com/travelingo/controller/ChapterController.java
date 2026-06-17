@@ -1,41 +1,34 @@
 package com.travelingo.controller;
 
-import com.travelingo.dto.ChapterDto;
-import com.travelingo.entity.Chapter;
-import com.travelingo.repository.ChapterRepository;
+import com.travelingo.service.ChapterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.*;
 
 /**
  * 챕터 컨트롤러
  * GET /api/chapters              → 언어별 챕터 목록
  * GET /api/chapters/{chapterId}  → 챕터 상세
+ *
+ * 비즈니스 로직과 트랜잭션 경계는 ChapterService에 위임.
+ * Controller는 요청 매핑 + 응답 반환만 담당.
  */
 @RestController
 @RequestMapping("/api/chapters")
 @RequiredArgsConstructor
 public class ChapterController {
 
-    private final ChapterRepository chapterRepository;
+    private final ChapterService chapterService;
 
     // ========== 언어별 챕터 목록 ==========
     @GetMapping
     public ResponseEntity<?> getChapters(@RequestParam(defaultValue = "english") String language) {
-        List<ChapterDto> chapters = chapterRepository.findByLanguageOrderByChapterNo(language)
-                .stream()
-                .map(ChapterDto::from)
-                .toList();
-        return ResponseEntity.ok(chapters);
+        return ResponseEntity.ok(chapterService.getChapters(language));
     }
 
     // ========== 챕터 상세 ==========
     @GetMapping("/{chapterId}")
     public ResponseEntity<?> getChapter(@PathVariable Long chapterId) {
-        Chapter chapter = chapterRepository.findById(chapterId)
-                .orElseThrow(() -> new NoSuchElementException("챕터를 찾을 수 없습니다. id=" + chapterId));
-        return ResponseEntity.ok(ChapterDto.from(chapter));
+        return ResponseEntity.ok(chapterService.getChapter(chapterId));
     }
 }
