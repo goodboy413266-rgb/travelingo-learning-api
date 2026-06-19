@@ -4,6 +4,7 @@ import com.travelingo.dto.ChapterDto;
 import com.travelingo.entity.Chapter;
 import com.travelingo.repository.ChapterRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ import java.util.NoSuchElementException;
  *   → flush 호출 안 함
  * - Entity → DTO 변환도 Service에서 수행하여 Controller는 응답 반환만 담당.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -32,10 +34,13 @@ public class ChapterService {
      * 언어별 챕터 목록 조회.
      */
     public List<ChapterDto> getChapters(String language) {
-        return chapterRepository.findByLanguageOrderByChapterNo(language)
+        log.info("getChapters 호출 language={}", language);
+        List<ChapterDto> result = chapterRepository.findByLanguageOrderByChapterNo(language)
                 .stream()
                 .map(ChapterDto::from)
                 .toList();
+        log.debug("getChapters 결과 size={}", result.size());
+        return result;
     }
 
     /**
@@ -43,8 +48,12 @@ public class ChapterService {
      * 못 찾으면 NoSuchElementException → GlobalExceptionHandler가 404로 변환.
      */
     public ChapterDto getChapter(Long chapterId) {
+        log.info("getChapter 호출 chapterId={}", chapterId);
         Chapter chapter = chapterRepository.findById(chapterId)
-                .orElseThrow(() -> new NoSuchElementException("챕터를 찾을 수 없습니다. id=" + chapterId));
+                .orElseThrow(() -> {
+                    log.warn("챕터 조회 실패 chapterId={}", chapterId);
+                    return new NoSuchElementException("챕터를 찾을 수 없습니다. id=" + chapterId);
+                });
         return ChapterDto.from(chapter);
     }
 }

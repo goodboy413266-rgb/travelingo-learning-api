@@ -1,6 +1,7 @@
 package com.travelingo.config;
 
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -28,13 +29,16 @@ import java.util.NoSuchElementException;
  *   → 예측 가능한 클라이언트 잘못은 IllegalArgumentException으로 명시하고,
  *     나머지 RuntimeException은 500으로 분리.
  */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     // orElseThrow()에서 발생하는 NoSuchElementException → 404
+    // 404는 정상적인 흐름의 일부이므로 INFO 레벨로 기록 (예: 잘못된 id 조회는 흔한 케이스).
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<?> handleNotFound(NoSuchElementException e) {
         String message = e.getMessage() != null ? e.getMessage() : "요청한 리소스를 찾을 수 없습니다";
+        log.info("리소스 없음 (404): {}", message);
         return ResponseEntity.status(404).body(
             Map.of("error", message)
         );
@@ -47,6 +51,7 @@ public class GlobalExceptionHandler {
         List<String> violations = e.getConstraintViolations().stream()
                 .map(v -> v.getPropertyPath() + ": " + v.getMessage())
                 .toList();
+        log.warn("파라미터 검증 실패 (400): {}", violations);
         return ResponseEntity.badRequest().body(
             Map.of(
                 "error", "입력값이 유효하지 않습니다",
@@ -61,6 +66,7 @@ public class GlobalExceptionHandler {
         List<String> fieldErrors = e.getBindingResult().getFieldErrors().stream()
                 .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
                 .toList();
+        log.warn("Body 검증 실패 (400): {}", fieldErrors);
         return ResponseEntity.badRequest().body(
             Map.of(
                 "error", "입력값이 유효하지 않습니다",
@@ -72,6 +78,7 @@ public class GlobalExceptionHandler {
     // 날짜 파싱 오류 → 400
     @ExceptionHandler(DateTimeParseException.class)
     public ResponseEntity<?> handleDateTimeParse(DateTimeParseException e) {
+        log.warn("날짜 파싱 실패 (400): {}", e.getMessage());
         return ResponseEntity.badRequest().body(
             Map.of("error", "날짜 형식이 올바르지 않습니다", "detail", e.getMessage())
         );
@@ -82,6 +89,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<?> handleIllegalArgument(IllegalArgumentException e) {
         String message = e.getMessage() != null ? e.getMessage() : "잘못된 요청입니다";
+        log.warn("잘못된 인자 (400): {}", message);
         return ResponseEntity.badRequest().body(
             Map.of("error", message)
         );
@@ -90,9 +98,11 @@ public class GlobalExceptionHandler {
     // 위에서 잡히지 않은 모든 RuntimeException → 500
     // 예: NullPointerException, ClassCastException, ArithmeticException 등
     // → 클라이언트 잘못이 아니라 서버 코드의 버그이므로 500이 맞다.
+    // → 스택트레이스까지 ERROR 레벨로 남겨야 운영 환경에서 추적 가능.
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<?> handleRuntime(RuntimeException e) {
         String detail = e.getMessage() != null ? e.getMessage() : "상세 정보 없음";
+        log.error("예상치 못한 서버 오류 (500): {}", detail, e);
         return ResponseEntity.internalServerError().body(
             Map.of("error", "서버 오류가 발생했습니다", "detail", detail)
         );
@@ -102,6 +112,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleException(Exception e) {
         String detail = e.getMessage() != null ? e.getMessage() : "상세 정보 없음";
+        log.error("처리되지 않은 예외 (500): {}", detail, e);
         return ResponseEntity.internalServerError().body(
             Map.of("error", "서버 오류가 발생했습니다", "detail", detail)
         );

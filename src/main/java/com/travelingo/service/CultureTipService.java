@@ -4,6 +4,7 @@ import com.travelingo.dto.CultureTipDto;
 import com.travelingo.entity.CultureTip;
 import com.travelingo.repository.CultureTipRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import java.util.NoSuchElementException;
  * - 못 찾으면 NoSuchElementException → GlobalExceptionHandler가 404로 변환.
  * - Entity → DTO 변환은 CultureTipDto.from() 정적 팩토리 사용.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -29,10 +31,14 @@ public class CultureTipService {
      * 세션별 문화 팁 조회.
      */
     public CultureTipDto getCultureTip(Long chapterId, Integer sessionNo) {
+        log.info("getCultureTip 호출 chapterId={}, sessionNo={}", chapterId, sessionNo);
         CultureTip tip = cultureTipRepository
                 .findByChapterIdAndSessionNo(chapterId, sessionNo)
-                .orElseThrow(() -> new NoSuchElementException(
-                        "문화 팁이 없습니다. chapterId=" + chapterId + ", sessionNo=" + sessionNo));
+                .orElseThrow(() -> {
+                    log.warn("문화 팁 조회 실패 chapterId={}, sessionNo={}", chapterId, sessionNo);
+                    return new NoSuchElementException(
+                            "문화 팁이 없습니다. chapterId=" + chapterId + ", sessionNo=" + sessionNo);
+                });
         return CultureTipDto.from(tip);
     }
 }
